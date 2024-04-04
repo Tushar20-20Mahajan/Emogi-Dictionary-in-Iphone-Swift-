@@ -1,89 +1,112 @@
 //
 //  EmojiTableViewController.swift
-//  Emogi Dictionary
+//  EmojiDictionary
 //
-//  Created by student on 04/04/24.
+//  Created by Doan Le Thieu on 3/24/18.
+//  Copyright © 2018 Doan Le Thieu. All rights reserved.
 //
 
 import UIKit
 
 class EmojiTableViewController: UITableViewController {
+    
+    var emojis: [Emoji] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        self.navigationItem.leftBarButtonItem = self.editButtonItem
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 44.0
+        
+        if let savedEmojis = Emoji.loadFromFile() {
+            emojis = savedEmojis
+        } else {
+            emojis = Emoji.loadSampleEmojis()
+        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        tableView.reloadData()
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 0
+        return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return 0
+        if section == 0 {
+            return emojis.count
+        } else {
+            return 0
+        }
     }
 
-    /*
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
-
-        // Configure the cell...
+        let cell = tableView.dequeueReusableCell(withIdentifier: "EmojiCell", for: indexPath) as! EmojiTableViewCell
+        cell.showsReorderControl = true
+        
+        let emoji = emojis[indexPath.row]
+        cell.update(with: emoji)
 
         return cell
     }
-    */
-
-    /*
-    // Override to support conditional editing of the table view.
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
+    
+    // MARK: - Table view delegate
+    
+    override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .delete
     }
-    */
-
-    /*
-    // Override to support editing the table view.
+    
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+            emojis.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+            Emoji.saveToFile(emojis: emojis)
+        }
     }
-    */
 
-    /*
-    // Override to support rearranging the table view.
     override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
+        let movedEmoji = emojis.remove(at: fromIndexPath.row)
+        emojis.insert(movedEmoji, at: to.row)
+        tableView.reloadData()
     }
-    */
 
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
-    /*
     // MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+        if segue.identifier == "EditEmoji" {
+            let indexPath = tableView.indexPathForSelectedRow!
+            let emoji = emojis[indexPath.row]
+            let navigationViewController = segue.destination as! UINavigationController
+            let addEditEmojiTableViewController = navigationViewController.topViewController as! AddEditEmojiTableViewController
+            
+            addEditEmojiTableViewController.emoji = emoji
+        }
     }
-    */
+    
+    @IBAction func unwindToEmojiTableView(segue: UIStoryboardSegue) {
+        guard segue.identifier == "saveUnwind" else { return }
+        
+        let sourceViewController = segue.source as! AddEditEmojiTableViewController
+        
+        if let emoji = sourceViewController.emoji {
+            if let seletedIndexPath = tableView.indexPathForSelectedRow {
+                emojis[seletedIndexPath.row] = emoji
+                tableView.reloadRows(at: [seletedIndexPath], with: .none)
+            } else {
+                let newIndexPath = IndexPath(row: emojis.count, section: 0)
+                emojis.append(emoji)
+                tableView.insertRows(at: [newIndexPath], with: .automatic)
+            }
+            
+            Emoji.saveToFile(emojis: emojis)
+        }
+    }
 
 }
+
